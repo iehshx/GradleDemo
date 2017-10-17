@@ -1,0 +1,64 @@
+// 各个组件所使用的公共配置。便于统一修改和管理
+android {
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+
+    dexOptions {
+        //让它不要对Lib做preDexing
+        preDexLibraries = false
+        //增加java堆内存大小
+        javaMaxHeapSize "4g"
+    }
+
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode rootProject.ext.versionCode
+        versionName rootProject.ext.versionName
+
+        //配置成支持多Dex的模式，防止单Dex类名、方法名、变量名超过65535
+        multiDexEnabled true
+    }
+
+    packagingOptions {
+        exclude 'META-INF/DEPENDENCIES.txt'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/NOTICE.txt'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'META-INF/notice.txt'
+        exclude 'META-INF/license.txt'
+        exclude 'META-INF/dependencies.txt'
+        exclude 'META-INF/LGPL2.1'
+        exclude 'META-INF/ASL2.0'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    lintOptions {
+        abortOnError false  //设置是否在lint发生错误时终止构建为false
+    }
+
+    sourceSets {
+        main {
+            if (isModule.toBoolean()) {
+                //独立组件模式的清单文件
+                manifest.srcFile 'src/main/independentModule/AndroidManifest.xml'
+            } else {
+                //集成模式，app作为主模块，依赖各个业务模块
+                manifest.srcFile 'src/main/AndroidManifest.xml'
+            }
+        }
+    }
+}

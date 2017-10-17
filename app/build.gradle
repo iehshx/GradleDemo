@@ -1,0 +1,200 @@
+apply plugin: 'com.android.application'
+
+def buildTime() {
+    return new Date().format("yyyyMMdd", TimeZone.getTimeZone("UTC"))
+}
+
+android {
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+
+    lintOptions {
+        //发生lint检查错误时也不中止构建
+        abortOnError false
+    }
+
+    packagingOptions {
+        //打包排除掉，不想添加到apk中的文件
+        exclude 'META-INF/DEPENDENCIES.txt'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/NOTICE.txt'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'META-INF/notice.txt'
+        exclude 'META-INF/license.txt'
+        exclude 'META-INF/dependencies.txt'
+        exclude 'META-INF/LGPL2.1'
+        exclude 'META-INF/ASL2.0'
+    }
+
+    compileOptions {
+        //指定编译用的java版本
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+
+    dexOptions {
+        //让它不要对Lib做preDexing
+        preDexLibraries = false
+        //增加java堆内存大小
+        javaMaxHeapSize "4g"
+    }
+
+    //默认的一些文件路径的配置
+    sourceSets {
+        main {
+            assets.srcDirs = ['assets']    //资源文件
+            jni.srcDirs 'src/main/jni'     //jni文件
+            jniLibs.srcDir 'src/main/jniLibs' //jni库
+        }
+    }
+
+    defaultConfig {
+        applicationId "com.iehshx.gradledemo"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode rootProject.ext.versionCode
+        versionName rootProject.ext.versionName
+        //配置成支持多Dex的模式，防止单Dex类名、方法名、变量名超过65535
+        multiDexEnabled true
+    }
+
+    signingConfigs {
+        unsafeDebug {
+            storeFile file("../config/gradledemo.keystore")
+            storePassword "123456"
+            keyAlias "iehshx"
+            keyPassword "123456"
+        }
+        hidePwdDebug {
+            storeFile file(HIDE_STORE_FILE)
+            keyAlias HIDE_KEY_ALIAS
+            storePassword HIDE_KEY_PASSWORD
+            keyPassword HIDE_STORE_PASSWORD
+        }
+        readLocalConfFileDebug {
+            storeFile file("xxx.keystore")
+            storePassword "******"
+            keyAlias "xxx"
+            keyPassword "******"
+        }
+    }
+
+    //读取本地配置文件，替换掉readLocalConfFileDebug代码块下的配置项
+    //需在buildTypes引用readLocalConfFileDebug这个签名配置之前执行
+    File propFile = file('../config/signing.properties');
+    if (propFile.exists()) {
+        def Properties props = new Properties()
+        props.load(new FileInputStream(propFile))
+        if (props.containsKey('STORE_FILE') && props.containsKey('STORE_PASSWORD') &&
+                props.containsKey('KEY_ALIAS') && props.containsKey('KEY_PASSWORD')) {
+            android.signingConfigs.readLocalConfFileDebug.storeFile = file(props['STORE_FILE'])
+            android.signingConfigs.readLocalConfFileDebug.storePassword = props['STORE_PASSWORD']
+            android.signingConfigs.readLocalConfFileDebug.keyAlias = props['KEY_ALIAS']
+            android.signingConfigs.readLocalConfFileDebug.keyPassword = props['KEY_PASSWORD']
+        } else {
+            android.buildTypes.release.signingConfig = null
+        }
+    } else {
+        android.buildTypes.release.signingConfig = null
+    }
+
+
+
+
+
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+            shrinkResources false
+            debuggable true
+            signingConfig signingConfigs.hidePwdDebug
+
+            manifestPlaceholders = [
+                    BUILD_TIME_VALUE : buildTime(),
+                    UMENG_APPKEY_VALUE : "******"
+            ]
+
+            resValue "string", "app_name", "gradleDemoDebug"
+            buildConfigField "boolean", "AUTO_UPDATE", "false"
+            buildConfigField "String", "BASE_URL", "\"http://www.baidu.com.com/\""
+            buildConfigField "String", "BASE_H5_URL", "\"http://www.baidu.com/\""
+            buildConfigField "String", "TALKINGDATA_KEY", "\"********\""
+        }
+        release {
+            minifyEnabled true
+            zipAlignEnabled true
+            shrinkResources true
+            debuggable false
+            jniDebuggable false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.readLocalConfFileDebug
+
+            manifestPlaceholders = [
+                    BUILD_TIME_VALUE : buildTime(),
+                    UMENG_APPKEY_VALUE : "********"
+            ]
+
+            resValue "string", "app_name", "gradleDemoRelease"
+            buildConfigField "boolean", "AUTO_UPDATE", "true"
+            buildConfigField "String", "BASE_URL", "\"http://www.baidu.com.com/\""
+            buildConfigField "String", "BASE_H5_URL", "\"http://www.baidu.com/\""
+            buildConfigField "String", "TALKINGDATA_KEY", "\"********\""
+        }
+        myBuildType {
+            minifyEnabled true
+            zipAlignEnabled true
+            shrinkResources true
+            debuggable false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.readLocalConfFileDebug
+
+            manifestPlaceholders = [
+                    BUILD_TIME_VALUE : buildTime(),
+                    UMENG_APPKEY_VALUE : "******"
+            ]
+
+            resValue "string", "app_name", "gradleDemoRelease"
+            buildConfigField "boolean", "AUTO_UPDATE", "true"
+            buildConfigField "String", "BASE_URL", "\"http://www.baidu.com/\""
+            buildConfigField "String", "BASE_H5_URL", "\"http://www.baidu.com/\""
+            buildConfigField "String", "TALKINGDATA_KEY", "\"*********\""
+        }
+    }
+
+    //自定义生成的apk名称
+    applicationVariants.all { variant ->
+        variant.outputs.each { output ->
+//            if (!variant.buildType.name.equals('debug')) {
+                def outputFile = output.outputFile
+                //这里修改文件名
+                def fileName = "GradleDemo-V"+defaultConfig.versionCode+"-"+buildTime()+variant.buildType.name+".apk"
+                output.outputFile = new File(rootProject.buildDir.path, fileName)
+                project.logger.error output.outputFile.toString()
+//            }
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+
+    if (isModule.toBoolean()) {
+        compile project(':library')
+    } else {
+        compile project(':module2')
+        compile project(':module3')
+        compile project(':module4')
+        compile project(':module5')
+    }
+
+    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+    compile 'com.android.support:appcompat-v7:25.3.1'
+    compile 'com.android.support.constraint:constraint-layout:1.0.2'
+    testCompile 'junit:junit:4.12'
+
+}

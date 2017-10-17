@@ -1,0 +1,79 @@
+/**
+ * buildscript 中的声明是 "gradle脚本自身需要使用的资源"
+ * 包括依赖项、第三方插件、maven仓库地址等
+ **/
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:2.3.3'
+    }
+}
+
+/**
+ * allprojects 在多模块项目中，用于声明 "各模块公共使用的maven仓库地址"
+ * 一般各模块在自身模块内的build.gradle内配置自身依赖的插件和库，模块内的配置会替换掉此处的公共配置
+ **/
+allprojects {
+    repositories {
+        jcenter()
+        mavenCentral()
+        maven { url "https://jitpack.io" }
+        maven {url 'https://dl.bintray.com/calvinning/maven'}
+    }
+}
+
+/**
+ * task的type由Gradle本身提供有Copy、Delete、Sync等
+ * Copy与Sync区别在于目标目录每次执行任务时是否保留原文件：Copy保留，Sync不保留
+ */
+task clean(type : Delete) {
+    delete rootProject.buildDir
+}
+
+//把构建好输出的apk包，拷出到工程目录下的myApks目录，方便查找，拖给测试或者安装
+//备注：如果在app主模块的build.gradle自定义了输出目录和文件名，这个就不需要了
+task copyApk(type : Sync) {
+    from 'app/build/outputs/apk'
+    include '*.apk'
+    into './myApks/'
+}
+
+//输出本项目的一些信息：versionCode versionName minSdkVersion
+task printProjInfo(type : getProjInfoTask)
+
+//自定义的task需要继承自DefaultTask
+class getProjInfoTask extends DefaultTask
+{
+    // @TaskAction 表示该Task要执行的动作,即在调用该Task时，printInfo()方法将被执行
+    @TaskAction
+    def printInfo()
+    {
+        if (project.hasProperty("minSdkVersion")) {
+            println "最低支持到APILevel："+project.properties.get("minSdkVersion")
+        }
+        if (project.hasProperty("versionCode")) {
+            println "比较版本号versionCode："+project.properties.get("versionCode")
+        }
+        if (project.hasProperty("versionName")) {
+            println "显示版本号versionName："+project.properties.get("versionName")
+        }
+
+    }
+}
+
+/**
+ * ext前缀 标识一组外置属性参数 ，可供其他.gradle存取
+ */
+
+ext {
+    compileSdkVersion = 25
+    buildToolsVersion = "25.0.3"
+    minSdkVersion = 14
+    targetSdkVersion = 22
+
+    //发布(release)时修改此处的版本号
+    versionCode = 100
+    versionName = "1.0.0"
+}

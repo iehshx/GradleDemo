@@ -1,0 +1,22 @@
+if (isModule.toBoolean()) {
+    apply plugin: 'com.android.application'
+} else {
+    apply plugin: 'com.android.library'
+}
+
+apply from: "../CommonConf/modulesCommonConfig.gradle"
+
+android {
+    defaultConfig {
+        if(isModule.toBoolean())
+        {
+            applicationId "com.iehshx.module2"
+        }
+
+    }
+}
+
+dependencies {
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    compile project(':library')
+}
